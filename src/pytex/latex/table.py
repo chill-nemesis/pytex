@@ -85,7 +85,34 @@ class _tableRow(_tableElement):
 
         return result
 
+class _tableMultiColumn(_tableRow):
+    def __init__(
+        self,
+        parent: "Table",
+        num_cols: int,
+        align: str,
+        multi_col_data,
+        other_data: list,
+    ):
+        super().__init__(parent=parent, data=other_data)
 
+        self._num_cols = num_cols
+        self._align = align
+
+        self._multicol_data = self.parent._parse_cell_data(multi_col_data)
+
+    def to_latex(self) -> str:
+        needed_space = sum(self._parent_table._column_widths[: self._num_cols])
+        needed_space += len(self.table_cell_separator) * (self._num_cols - 1)
+        result = f"\\multicolumn{{{self._num_cols}}}{{{self._align}}}{{{self._multicol_data}}}".ljust(needed_space)
+
+        for idx, element in enumerate(self.cell_data):
+            result += self.table_cell_separator
+            result += element.ljust(self.parent._column_widths[idx + self._num_cols])
+
+        result += self.table_row_end
+
+        return result
 
 
 class Table:
@@ -193,6 +220,30 @@ class Table:
         """Add a separator to the table."""
         self._data.append(_tableSeparator())
 
+    def add_multi_column(
+        self,
+        multicol_data,
+        num_cols: Union[int, None] = None,
+        align: str = "c",
+        other_data: Union[list, None] = None,
+    ) -> None:
+        # clean up some of the inputs so we can do proper checking
+        num_other_cells = 0 if other_data is None else len(other_data)
+        num_cols = self.cols if num_cols is None else num_cols
+
+        if other_data is None:
+            other_data = []
+
+        assert num_cols + num_other_cells == self.cols, \
+            "Provided data count does not match available cells in table!"
+
+        self._data.append(
+            _tableMultiColumn(self,
+                              num_cols,
+                              align,
+                              multicol_data,
+                              other_data)
+        )
 
     def add_row(self, row_data: list) -> None:
         """Add a row.
