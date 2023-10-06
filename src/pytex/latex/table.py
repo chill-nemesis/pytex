@@ -101,14 +101,31 @@ class _tableMultiColumn(_tableRow):
 
         self._multicol_data = self.parent._parse_cell_data(multi_col_data)
 
+        multirow_cell_size = [
+            max(1 + 11  # \multicolumn
+                + 1 + len(str(self._num_cols)) + 1  # {num_cols}
+                + 1 + len(self._align) + 1  # {align}
+                + 1 + len(self._multicol_data) + 1  # {<data>}
+                , 0)
+        ]
+        parent_cell_sizes = super().cell_sizes
+        self._cell_sizes = np.concatenate(
+            (multirow_cell_size, parent_cell_sizes))
+
+    @ property
+    def cell_sizes(self):
+        return self._cell_sizes
+
     def to_latex(self) -> str:
         needed_space = sum(self._parent_table._cell_widths[: self._num_cols])
         needed_space += len(self.table_cell_separator) * (self._num_cols - 1)
-        result = f"\\multicolumn{{{self._num_cols}}}{{{self._align}}}{{{self._multicol_data}}}".ljust(needed_space)
+        result = f"\\multicolumn{{{self._num_cols}}}{{{self._align}}}{{{self._multicol_data}}}".ljust(
+            needed_space)
 
         for idx, element in enumerate(self.cell_data):
             result += self.table_cell_separator
-            result += element.ljust(self.parent._cell_widths[idx + self._num_cols])
+            result += element.ljust(
+                self.parent._cell_widths[idx + self._num_cols])
 
         result += self.table_row_end
 
