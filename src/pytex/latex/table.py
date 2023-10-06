@@ -76,7 +76,7 @@ class _tableRow(_tableElement):
         result = ""
         # Convert a valid line into a table body
         for idx, element in enumerate(self.cell_data):
-            result += element.ljust(self.parent._column_widths[idx])
+            result += element.ljust(self.parent._cell_widths[idx])
 
             if idx < self._parent_table.cols - 1:
                 result += self.table_cell_separator
@@ -102,13 +102,13 @@ class _tableMultiColumn(_tableRow):
         self._multicol_data = self.parent._parse_cell_data(multi_col_data)
 
     def to_latex(self) -> str:
-        needed_space = sum(self._parent_table._column_widths[: self._num_cols])
+        needed_space = sum(self._parent_table._cell_widths[: self._num_cols])
         needed_space += len(self.table_cell_separator) * (self._num_cols - 1)
         result = f"\\multicolumn{{{self._num_cols}}}{{{self._align}}}{{{self._multicol_data}}}".ljust(needed_space)
 
         for idx, element in enumerate(self.cell_data):
             result += self.table_cell_separator
-            result += element.ljust(self.parent._column_widths[idx + self._num_cols])
+            result += element.ljust(self.parent._cell_widths[idx + self._num_cols])
 
         result += self.table_row_end
 
@@ -137,7 +137,7 @@ class Table:
         self._headers = header
         self._caption = caption
         self._data: list[_tableElement] = []
-        self._column_widths = _lengths(self._headers)
+        self._cell_widths = _lengths(self._headers)
         self._scale = scale
 
         self._number_precision = 3
@@ -261,7 +261,8 @@ class Table:
 
         new_row = _tableRow(row_data, parent=self)
 
-        self._column_widths = np.max([self._column_widths, new_row.cell_sizes], axis=0)
+        self._cell_widths = np.max(
+            [self._cell_widths, new_row.cell_sizes], axis=0)
         self._data.append(new_row)
 
     def _parse_cell_data(self, data) -> str:
@@ -287,7 +288,7 @@ class Table:
         """Generate a latex header string."""
         result = "\t\t"
         for idx, header in enumerate(self.headers):
-            result += header.ljust(self._column_widths[idx])
+            result += header.ljust(self._cell_widths[idx])
 
             if idx < self.cols - 1:
                 result += " & "
